@@ -26,6 +26,38 @@ fi
 echo "Installing PM2..."
 sudo npm install -g pm2
 
+# 4. [NEW] Install Monitoring Agent (Node Exporter)
+echo "📊 Checking Monitoring Agent..."
+if ! systemctl is-active --quiet node_exporter; then
+    echo "   Installing Node Exporter..."
+    wget -q https://github.com/prometheus/node_exporter/releases/download/v1.6.1/node_exporter-1.6.1.linux-amd64.tar.gz
+    tar xvf node_exporter-1.6.1.linux-amd64.tar.gz > /dev/null
+    sudo mv node_exporter-1.6.1.linux-amd64/node_exporter /usr/local/bin/
+    rm -rf node_exporter*
+
+    # Create Systemd Service
+    cat <<EOF | sudo tee /etc/systemd/system/node_exporter.service
+[Unit]
+Description=Node Exporter
+After=network.target
+
+[Service]
+User=vagrant
+ExecStart=/usr/local/bin/node_exporter
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    sudo systemctl daemon-reload
+    sudo systemctl enable node_exporter
+    sudo systemctl start node_exporter
+    echo "   ✅ Agent active on port 9100"
+else
+    echo "   ✅ Node Exporter is already running."
+fi
+
 # 4. Prepare Directory
 # We create the folder and give ownership to the 'vagrant' user
 if [ ! -d "$APP_DIR" ]; then
@@ -37,7 +69,7 @@ fi
 # 5. Clone or Pull Code
 if [ ! -d "$APP_DIR/.git" ]; then
     echo "Cloning repository..."
-    git clone "$GIT_REPO_URL" "$APP_DIR"
+    git clone -b main "$GIT_REPO_URL" "$APP_DIR"
 else
     echo "Repository exists. Pulling latest changes..."
     cd "$APP_DIR"

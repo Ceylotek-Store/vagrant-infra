@@ -69,7 +69,7 @@ fi
 if [ ! -d "$APP_DIR" ]; then
     echo "⬇️  Cloning repository..."
     cd /var/www
-    git clone $REPO_URL 
+    git clone -b main $REPO_URL 
 else
     echo "🔄 Repository exists. Pulling latest changes..."
     cd $APP_DIR
